@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini에게 질문하기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* 기본 폰트 설정 */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* 로딩 스피너 스타일 */
+        .loader {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #4f46e5; /* Indigo */
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin: 10px auto; /* 가운데 정렬 및 여백 */
+            display: none; /* 기본적으로 숨김 */
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* 답변 영역 최소 높이 및 스크롤 */
+        #responseArea {
+            min-height: 150px;
+            max-height: 400px; /* 최대 높이 지정 */
+            overflow-y: auto; /* 내용이 넘칠 경우 스크롤 생성 */
+            white-space: pre-wrap; /* 공백 및 줄바꿈 유지 */
+            word-wrap: break-word; /* 긴 단어 줄바꿈 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white p-6 md:p-8 rounded-lg shadow-xl w-full max-w-3xl">
+        <h1 class="text-2xl md:text-3xl font-bold mb-6 text-center text-gray-800">Gemini API 질문 프로그램</h1>
+
+        <div class="mb-4">
+            <label for="questionInput" class="block text-sm font-medium text-gray-700 mb-1">질문을 입력하세요:</label>
+            <textarea id="questionInput" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150" placeholder="여기에 질문을 입력하세요..."></textarea>
+        </div>
+
+        <div class="text-center mb-4">
+            <button id="askButton" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-5 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed">
+                질문하기
+            </button>
+        </div>
+
+        <div id="loadingIndicator" class="loader"></div>
+
+        <div id="errorArea" class="mt-4 text-red-600 text-sm font-medium text-center h-5">
+            </div>
+
+        <div class="mt-6">
+            <h2 class="text-lg font-semibold text-gray-800 mb-2">답변:</h2>
+            <div id="responseArea" class="bg-gray-50 p-4 rounded-md border border-gray-200 text-gray-700 leading-relaxed">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        const questionInput = document.getElementById('questionInput');
+        const askButton = document.getElementById('askButton');
+        const responseArea = document.getElementById('responseArea');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const errorArea = document.getElementById('errorArea');
+
+        askButton.addEventListener('click', async () => {
+            const question = questionInput.value.trim(); // 입력값 양쪽 공백 제거
+
+            // 이전 상태 초기화
+            responseArea.textContent = ''; // 이전 답변 지우기
+            errorArea.textContent = ''; // 이전 오류 지우기
+
+            if (!question) {
+                errorArea.textContent = '질문을 입력해주세요.'; // 오류 메시지 표시
+                questionInput.focus(); // 입력 필드에 포커스
+                return; // 함수 종료
+            }
+
+            // 로딩 상태 시작
+            askButton.disabled = true; // 버튼 비활성화
+            askButton.textContent = '질문 중...'; // 버튼 텍스트 변경
+            loadingIndicator.style.display = 'block'; // 로딩 스피너 표시
+
+            try {
+                // 백엔드 서버의 /ask 엔드포인트로 POST 요청 보내기
+                const response = await fetch('/ask', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ question: question }), // 질문을 JSON 형식으로 전송
+                });
+
+                // 응답 데이터를 JSON으로 파싱 시도
+                let data;
+                try {
+                    data = await response.json();
+                } catch (jsonError) {
+                    // JSON 파싱 실패 시 (예: 서버가 HTML 오류 페이지 반환)
+                    console.error('JSON 파싱 오류:', jsonError);
+                    throw new Error('서버로부터 유효한 응답을 받지 못했습니다.');
+                }
+
+
+                // 응답 상태 확인 (response.ok는 200-299 상태 코드를 확인)
+                if (!response.ok) {
+                    // 서버에서 오류 응답(JSON 형태)을 보냈을 경우, data.error 사용
+                    // 서버가 JSON 형태의 오류를 보내지 않았을 경우 대비
+                    const errorMessage = data?.error || `서버 오류 발생 (상태 코드: ${response.status})`;
+                    throw new Error(errorMessage);
+                }
+
+                // 응답 영역에 답변 표시 (data.answer가 있는지 확인)
+                if (data && data.answer) {
+                     responseArea.textContent = data.answer;
+                } else {
+                     responseArea.textContent = '답변을 받지 못했습니다.'; // 예상치 못한 응답 형식
+                }
+
+
+            } catch (error) {
+                // 네트워크 오류 또는 위에서 throw된 오류 처리
+                console.error('오류 발생:', error);
+                // 사용자에게 오류 메시지 표시
+                // error.message가 너무 기술적일 수 있으므로 조금 더 일반적인 메시지 표시 가능
+                errorArea.textContent = `오류: ${error.message || '알 수 없는 오류가 발생했습니다.'}`;
+                responseArea.textContent = ''; // 답변 영역 비우기
+            } finally {
+                // 로딩 상태 종료 (성공/실패 여부와 관계없이 항상 실행)
+                askButton.disabled = false; // 버튼 활성화
+                askButton.textContent = '질문하기'; // 버튼 텍스트 복원
+                loadingIndicator.style.display = 'none'; // 로딩 스피너 숨기기
+            }
+        });
+
+        // Enter 키로 질문 제출 (Shift+Enter는 줄바꿈)
+        questionInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault(); // 기본 Enter 동작(줄바꿈) 방지
+                askButton.click(); // 질문하기 버튼 클릭 효과
+            }
+        });
+    </script>
+</body>
+</html>

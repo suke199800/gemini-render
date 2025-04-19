@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini 육도선인</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* 기본 폰트 및 스크롤바 스타일 (선택 사항) */
+        body {
+            font-family: 'Inter', sans-serif;
+            /* 스크롤바 디자인 (웹킷 기반 브라우저용) */
+            ::-webkit-scrollbar {
+                width: 8px;
+            }
+            ::-webkit-scrollbar-track {
+                background: #f1f5f9; /* bg-slate-100 */
+                border-radius: 10px;
+            }
+            ::-webkit-scrollbar-thumb {
+                background: #94a3b8; /* bg-slate-400 */
+                border-radius: 10px;
+            }
+            ::-webkit-scrollbar-thumb:hover {
+                background: #64748b; /* bg-slate-500 */
+            }
+        }
+        /* 로딩 스피너 스타일 */
+        .loader {
+            border: 4px solid #e2e8f0; /* bg-slate-200 */
+            border-top: 4px solid #4f46e5; /* indigo-600 */
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin: 1rem auto; /* 가운데 정렬 및 상하 여백 */
+            display: none; /* 기본적으로 숨김 */
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* 답변 영역 스타일 */
+        #responseArea {
+            min-height: 150px; /* 최소 높이 */
+            max-height: 50vh; /* 최대 높이를 화면 높이의 절반으로 제한 */
+            overflow-y: auto; /* 내용 넘칠 경우 스크롤 */
+            white-space: pre-wrap; /* 공백/줄바꿈 유지 */
+            word-wrap: break-word; /* 긴 단어 줄바꿈 */
+            line-height: 1.6; /* 줄 간격 개선 */
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 via-white to-cyan-50 flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white p-6 md:p-10 rounded-xl shadow-2xl w-full max-w-3xl border border-gray-200">
+        <div class="text-center mb-8">
+             <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-indigo-600 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+              </svg>
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-800">Gemini 질문 봇</h1>
+            <p class="text-sm text-gray-500 mt-1">궁금한 것을 무엇이든 물어보세요!</p>
+        </div>
+
+        <div class="mb-5">
+            <label for="questionInput" class="block text-sm font-medium text-gray-700 mb-2">질문 입력:</label>
+            <textarea id="questionInput" rows="4" class="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out resize-none" placeholder="여기에 질문을 입력하세요..."></textarea>
+        </div>
+
+        <div class="text-center mb-5">
+            <button id="askButton" class="inline-flex items-center justify-center bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold py-2.5 px-6 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out transform hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                <span>질문 보내기</span>
+            </button>
+        </div>
+
+        <div id="loadingIndicator" class="loader"></div>
+
+        <div id="errorArea" class="text-center text-red-600 text-sm font-medium h-5 mb-4">
+            </div>
+
+        <div class="bg-slate-50 p-4 md:p-5 rounded-lg border border-slate-200 shadow-inner">
+            <h2 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a2 2 0 01-2-2V10a2 2 0 012-2h8z" />
+                  </svg>
+                Gemini의 답변:
+            </h2>
+            <div id="responseArea" class="text-gray-700">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        // JavaScript 코드는 이전과 동일하게 유지됩니다.
+        // (ID가 동일하므로 별도 수정 없이 작동합니다)
+        const questionInput = document.getElementById('questionInput');
+        const askButton = document.getElementById('askButton');
+        const responseArea = document.getElementById('responseArea');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const errorArea = document.getElementById('errorArea');
+
+        askButton.addEventListener('click', async () => {
+            const question = questionInput.value.trim();
+
+            responseArea.textContent = '';
+            errorArea.textContent = '';
+
+            if (!question) {
+                errorArea.textContent = '질문을 입력해주세요.';
+                questionInput.focus();
+                return;
+            }
+
+            askButton.disabled = true;
+            // 버튼 텍스트 변경은 버튼 내용이 복잡해져서 생략하거나 다른 방식 고려
+            // askButton.querySelector('span').textContent = '질문 중...';
+            loadingIndicator.style.display = 'block';
+
+            try {
+                const response = await fetch('/ask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: question }),
+                });
+
+                let data;
+                try {
+                    data = await response.json();
+                } catch (jsonError) {
+                    console.error('JSON 파싱 오류:', jsonError);
+                    throw new Error('서버로부터 유효한 응답을 받지 못했습니다.');
+                }
+
+                if (!response.ok) {
+                    const errorMessage = data?.error || `서버 오류 발생 (상태 코드: ${response.status})`;
+                    throw new Error(errorMessage);
+                }
+
+                if (data && data.answer) {
+                     responseArea.textContent = data.answer;
+                } else {
+                     responseArea.textContent = '답변을 받지 못했습니다.';
+                }
+
+            } catch (error) {
+                console.error('오류 발생:', error);
+                errorArea.textContent = `오류: ${error.message || '알 수 없는 오류가 발생했습니다.'}`;
+                responseArea.textContent = '';
+            } finally {
+                askButton.disabled = false;
+                // askButton.querySelector('span').textContent = '질문 보내기';
+                loadingIndicator.style.display = 'none';
+            }
+        });
+
+        questionInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                askButton.click();
+            }
+        });
+    </script>
+</body>
+</html>

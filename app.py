@@ -18,7 +18,7 @@ try:
     genai.configure(api_key=api_key)
 
     # 사용할 Gemini 모델 설정
-    model = genai.GenerativeModel('gemini-2.5-pro-preview-03-25')
+    model = genai.GenerativeModel('gemini-2.5-flash-preview-04-17')
     print("Gemini 모델이 성공적으로 로드되었습니다.") # 서버 로그에 성공 메시지 출력
 
 except Exception as e:

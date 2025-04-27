@@ -1,86 +1,104 @@
-# 필요한 라이브러리를 가져옵니다.
 from flask import Flask, request, jsonify, render_template
 import google.generativeai as genai
 import os
-# API 키를 환경 변수에서 직접 로드하므로 python-dotenv는 서버 환경에서 필수는 아닙니다.
-# 하지만 로컬 개발 시에는 유용할 수 있습니다.
+import logging
 
-# Flask 앱 인스턴스를 생성합니다.
 app = Flask(__name__)
 
-# Gemini API 설정
+logging.basicConfig(level=logging.INFO)
+
+model = None
 try:
-    # Render와 같은 배포 환경에서는 환경 변수에서 직접 API 키를 읽어옵니다.
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         raise ValueError("환경 변수에서 GEMINI_API_KEY를 찾을 수 없습니다.")
 
     genai.configure(api_key=api_key)
-
-    # 사용할 Gemini 모델 설정
-    model = genai.GenerativeModel('gemini-2.5-flash-preview-04-17')
-    print("Gemini 모델이 성공적으로 로드되었습니다.") # 서버 로그에 성공 메시지 출력
+    # 최신 모델 사용 권장 (예: gemini-1.5-flash-latest)
+    # 사용자가 이전에 사용한 모델명으로 유지합니다. 필요시 변경하세요.
+    model = genai.GenerativeModel('gemini-1.5-flash-latest')
+    app.logger.info("Gemini 모델이 성공적으로 로드되었습니다.")
 
 except Exception as e:
-    print(f"Gemini API 설정 중 오류 발생: {e}")
-    # 실제 운영 환경에서는 오류 로깅 및 처리를 더 견고하게 해야 합니다.
-    model = None # 모델 로딩 실패 시 None으로 설정
+    app.logger.error(f"Gemini API 설정 중 오류 발생: {e}")
 
-# 루트 URL ('/') 접속 시 HTML 페이지를 보여줍니다.
+
 @app.route('/')
 def index():
-    # 'templates' 폴더 안의 'index.html' 파일을 렌더링합니다.
-    # templates 폴더가 app.py와 같은 레벨에 있어야 합니다.
     try:
         return render_template('index.html')
     except Exception as e:
-        print(f"index.html 렌더링 중 오류: {e}")
+        app.logger.error(f"index.html 렌더링 중 오류: {e}")
         return "HTML 페이지를 로드하는 중 오류가 발생했습니다.", 500
 
 
-# '/ask' URL로 POST 요청이 오면 Gemini API를 호출합니다.
 @app.route('/ask', methods=['POST'])
 def ask_gemini():
-    # 모델이 로드되지 않았으면 오류 반환
+    global model # 전역 model 변수 사용 명시
+
     if not model:
+        app.logger.error("API 요청 수신 실패: Gemini 모델이 로드되지 않음")
         return jsonify({"error": "Gemini 모델을 초기화하지 못했습니다. 서버 로그를 확인하세요."}), 500
 
-    # 클라이언트(HTML 페이지)로부터 JSON 데이터에서 'question'을 가져옵니다.
     data = request.get_json()
-    if not data or 'question' not in data:
-         return jsonify({"error": "잘못된 요청 형식입니다. 'question' 키가 필요합니다."}), 400
+    if not data or 'history' not in data:
+        app.logger.warning(f"잘못된 요청 수신: 'history' 키가 없음. 받은 데이터: {data}")
+        return jsonify({"error": "잘못된 요청 형식입니다. 'history' 키가 필요합니다."}), 400
 
-    question = data.get('question')
+    conversation_history = data.get('history')
 
-    # 질문 내용이 비어있는지 확인
-    if not question:
-        return jsonify({"error": "질문 내용이 없습니다."}), 400 # 잘못된 요청 응답
+    if not conversation_history or not isinstance(conversation_history, list):
+        app.logger.warning(f"잘못된 요청 수신: 'history'가 비어있거나 리스트가 아님: {conversation_history}")
+        return jsonify({"error": "'history'는 비어 있지 않은 리스트여야 합니다."}), 400
+
+    if not conversation_history[-1].get('role') == 'user':
+         app.logger.warning(f"잘못된 요청 수신: history의 마지막 메시지가 user가 아님: {conversation_history[-1]}")
+         return jsonify({"error": "잘못된 요청 형식입니다. 마지막 메시지는 사용자 질문이어야 합니다."}), 400
+
+    gemini_formatted_history = []
+    for message in conversation_history:
+        role = message.get('role')
+        content = message.get('content')
+        if not role or content is None: # content가 빈 문자열일 수도 있으므로 None 체크
+            app.logger.warning(f"잘못된 메시지 형식 발견 (role 또는 content 누락): {message}")
+            # 문제가 있는 메시지는 건너뛰거나 오류 반환 결정 가능
+            continue # 일단 건너뛰기
+            # return jsonify({"error": "대화 기록에 잘못된 형식의 메시지가 포함되어 있습니다."}), 400
+
+        gemini_role = 'model' if role == 'assistant' else role
+        gemini_formatted_history.append({'role': gemini_role, 'parts': [content]})
+
+    if not gemini_formatted_history:
+         app.logger.warning(f"처리 후 Gemini history가 비어있음. 원본: {conversation_history}")
+         return jsonify({"error": "처리할 유효한 대화 내용이 없습니다."}), 400
+
+    app.logger.info(f"Gemini에게 전달할 history 개수: {len(gemini_formatted_history)}")
 
     try:
-        # Gemini 모델에 질문을 보내고 응답을 생성합니다.
-        # stream=True 를 사용하면 더 긴 응답을 처리하거나 실시간 표시가 가능하지만,
-        # 현재 프론트엔드에서는 전체 응답을 한 번에 받으므로 stream=False (기본값) 사용
-        response = model.generate_content(question)
+        response = model.generate_content(gemini_formatted_history)
 
-        # response.text 대신 response.parts 확인 (더 안정적)
-        answer_text = "".join(part.text for part in response.parts) if hasattr(response, 'parts') else response.text
+        answer_text = ""
+        if hasattr(response, 'parts') and response.parts:
+             answer_text = "".join(part.text for part in response.parts)
+        elif hasattr(response, 'text'):
+             answer_text = response.text
 
-        # 응답 텍스트를 JSON 형태로 클라이언트에 돌려줍니다.
+        if not answer_text:
+            app.logger.warning(f"Gemini로부터 비어있거나 예상치 못한 응답 수신: {response}")
+            if hasattr(response, 'prompt_feedback') and response.prompt_feedback.block_reason:
+                reason = response.prompt_feedback.block_reason
+                app.logger.warning(f"Gemini 응답 블록됨. 이유: {reason}")
+                answer_text = f"죄송합니다. 요청하신 내용에 답변할 수 없습니다. (사유: {reason})"
+            else:
+                answer_text = "죄송합니다. 답변을 생성하는 데 문제가 발생했습니다."
+
         return jsonify({"answer": answer_text})
 
     except Exception as e:
-        # API 호출 중 오류 발생 시 오류 메시지를 돌려줍니다.
-        print(f"Gemini API 호출 중 오류: {e}")
-        # 사용자에게는 조금 더 일반적인 오류 메시지를 보여주는 것이 좋을 수 있습니다.
-        return jsonify({"error": f"Gemini API와 통신 중 오류가 발생했습니다."}), 500
+        app.logger.error(f"Gemini API 호출 중 오류: {e}", exc_info=True)
+        return jsonify({"error": f"Gemini API와 통신 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."}), 500
 
-# 이 부분은 로컬 개발 시 `python app.py`로 직접 실행할 때 사용됩니다.
-# Render와 같은 WSGI 서버 환경(Gunicorn)에서는 이 부분이 직접 호출되지 않습니다.
-# Gunicorn이 Flask 앱 객체(`app`)를 직접 찾아 실행합니다.
+
 if __name__ == '__main__':
-    # debug=True는 개발 중에만 사용하고, 실제 배포 시에는 Gunicorn이 관리합니다.
-    # host='0.0.0.0'은 로컬 네트워크의 다른 기기에서도 접속 가능하게 합니다.
-    # port=5000은 Flask 기본 포트입니다. Render는 보통 다른 포트를 사용합니다.
-    app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
-    # Render는 PORT 환경 변수를 제공하므로 위와 같이 사용하는 것이 좋습니다.
-    # debug=False 로 설정하는 것이 운영 환경에 더 가깝습니다.
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=False, host='0.0.0.0', port=port)

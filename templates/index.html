@@ -14,11 +14,12 @@
             background-color: #f5f5f7;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
-            ::-webkit-scrollbar { width: 6px; height: 6px; }
-            ::-webkit-scrollbar-track { background: transparent; }
-            ::-webkit-scrollbar-thumb { background: #cccccc; border-radius: 10px; }
-            ::-webkit-scrollbar-thumb:hover { background: #aaaaaa; }
         }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cccccc; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #aaaaaa; }
+
         #thinkingIndicator {
             display: none;
             text-align: center;
@@ -31,16 +32,42 @@
             font-weight: 500;
             font-variant-numeric: tabular-nums;
         }
+        /* --- Updated Response Area Style --- */
         #responseArea {
-            min-height: 120px;
-            max-height: calc(60vh - 50px);
+            min-height: 120px; /* Keep minimum height */
+            max-height: calc(60vh - 90px); /* Adjust max height slightly if needed */
             overflow-y: auto;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            line-height: 1.75;
-            color: #333333;
-            font-size: 0.875rem;
+            padding: 0.75rem; /* Add some padding inside */
+            border: 1px solid #e5e7eb; /* Add subtle border */
+            border-radius: 0.5rem; /* Rounded corners */
+            background-color: #f9fafb; /* Slightly different background */
         }
+        /* Styling for individual messages within responseArea */
+        .message-bubble {
+            padding: 0.6rem 0.9rem;
+            border-radius: 1rem;
+            margin-bottom: 0.75rem;
+            max-width: 85%;
+            line-height: 1.6;
+            word-wrap: break-word;
+            font-size: 0.875rem; /* 14px */
+            clear: both; /* Ensure bubbles don't overlap weirdly */
+        }
+        .user-message {
+            background-color: #dbeafe; /* Light blue */
+            color: #1e40af; /* Darker blue text */
+            float: right; /* Align user messages to the right */
+            margin-left: auto; /* Push to right */
+            text-align: left; /* Keep text aligned left within bubble */
+        }
+        .assistant-message {
+            background-color: #e5e7eb; /* Light gray */
+            color: #374151; /* Darker gray text */
+            float: left; /* Align assistant messages to the left */
+            margin-right: auto; /* Push to left */
+        }
+        /* --- End Updated Styles --- */
+
         textarea:focus, button:focus-visible {
              outline: none;
              box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.3);
@@ -80,7 +107,7 @@
 
             <div class="mb-5">
                 <label for="questionInput" class="sr-only">질문 입력:</label>
-                <textarea id="questionInput" rows="4" class="w-full px-4 py-3 border border-gray-300/80 rounded-xl shadow-sm focus:border-blue-500 transition duration-150 ease-in-out resize-none placeholder-gray-400 text-sm text-gray-800 bg-gray-50/80" placeholder="여기에 질문을 입력하세요..."></textarea>
+                <textarea id="questionInput" rows="3" class="w-full px-4 py-3 border border-gray-300/80 rounded-xl shadow-sm focus:border-blue-500 transition duration-150 ease-in-out resize-none placeholder-gray-400 text-sm text-gray-800 bg-gray-50/80" placeholder="여기에 질문을 입력하세요..."></textarea>
             </div>
 
             <div class="text-center mb-4">
@@ -98,15 +125,12 @@
 
             <div id="errorArea" class="text-center text-red-600 text-xs font-medium h-5 mb-2"></div>
 
-            <div class="mt-4 pt-4 border-t border-gray-200/90 flex-grow">
-                <h2 class="text-xs font-medium text-gray-500 mb-2 flex items-center uppercase tracking-wider">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                         <path stroke-linecap="round" stroke-linejoin="round" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a2 2 0 01-2-2V10a2 2 0 012-2h8z" />
-                    </svg>
-                    답변
-                </h2>
-                <div id="responseArea" class="text-gray-700">
-                    </div>
+            <!-- Changed: Removed title, using the responseArea directly for chat log -->
+            <div class="mt-4 pt-4 border-t border-gray-200/90 flex-grow flex flex-col">
+                <!-- Response Area will now hold chat bubbles -->
+                <div id="responseArea" class="flex-grow">
+                    <!-- Chat messages will be appended here -->
+                </div>
             </div>
         </div>
 
@@ -130,14 +154,34 @@
         const timerElement = document.getElementById('timer');
         const errorArea = document.getElementById('errorArea');
 
+        let conversationHistory = []; // <-- Store conversation history here
+        const MAX_HISTORY_MESSAGES = 20; // Keep last N messages (user + assistant pairs = 10 turns)
+
         let timerInterval = null;
         let startTime = null;
+
+        // --- Helper Function to Add Messages to UI ---
+        function appendMessageToUI(role, content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.textContent = content;
+            messageDiv.classList.add('message-bubble'); // Base class for bubble
+
+            if (role === 'user') {
+                messageDiv.classList.add('user-message'); // Style for user
+            } else {
+                messageDiv.classList.add('assistant-message'); // Style for assistant/error
+            }
+
+            responseArea.appendChild(messageDiv);
+            // Scroll to the bottom of the chat area
+            responseArea.scrollTop = responseArea.scrollHeight;
+        }
+        // --- End Helper Function ---
 
         askButton.addEventListener('click', async () => {
             const question = questionInput.value.trim();
 
-            responseArea.textContent = '';
-            errorArea.textContent = '';
+            errorArea.textContent = ''; // Clear previous errors
             thinkingIndicator.style.display = 'none';
             if (timerInterval) clearInterval(timerInterval);
 
@@ -145,6 +189,16 @@
                 errorArea.textContent = '질문을 입력해주세요.';
                 questionInput.focus();
                 return;
+            }
+
+            // 1. Add user question to history and UI
+            conversationHistory.push({ role: 'user', content: question });
+            appendMessageToUI('user', question);
+            questionInput.value = ''; // Clear the input field
+
+            // 2. Prune history if it's too long (before sending)
+            while (conversationHistory.length > MAX_HISTORY_MESSAGES) {
+                conversationHistory.shift(); // Remove the oldest message (user or assistant)
             }
 
             askButton.disabled = true;
@@ -159,10 +213,11 @@
             }, 100);
 
             try {
+                // 3. Send the *entire* history to the backend
                 const response = await fetch('/ask', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ question: question }),
+                    body: JSON.stringify({ history: conversationHistory }), // <-- Send history
                 });
 
                 clearInterval(timerInterval);
@@ -184,29 +239,45 @@
                 }
 
                 if (data && data.answer) {
-                    responseArea.textContent = data.answer;
+                    // 4. Add assistant's answer to history and UI
+                    conversationHistory.push({ role: 'assistant', content: data.answer });
+                    appendMessageToUI('assistant', data.answer);
                 } else {
-                    responseArea.textContent = '답변을 받지 못했습니다.';
+                    // Handle cases where answer is missing but response was OK
+                    const noAnswerMsg = '답변을 받지 못했습니다.';
+                    // Don't add 'undefined' to history, maybe add the error message?
+                    // conversationHistory.push({ role: 'assistant', content: noAnswerMsg });
+                    appendMessageToUI('assistant', noAnswerMsg); // Show in UI
                 }
 
             } catch (error) {
                 if (timerInterval) clearInterval(timerInterval);
                 console.error('오류 발생:', error);
-                errorArea.textContent = `오류: ${error.message || '알 수 없는 오류가 발생했습니다.'}`;
-                responseArea.textContent = '';
+                const errorMsg = `오류: ${error.message || '알 수 없는 오류가 발생했습니다.'}`;
+                errorArea.textContent = errorMsg; // Show error in dedicated area
+                // Optionally, show error in chat too
+                appendMessageToUI('assistant', `⚠️ ${errorMsg}`);
+                // Decide if you want to keep the failed assistant turn in history
+                // conversationHistory.push({ role: 'assistant', content: `Error: ${error.message}` });
             } finally {
                 askButton.disabled = false;
                 askButton.querySelector('span').textContent = '보내기';
                 thinkingIndicator.style.display = 'none';
+                // Ensure focus is back on input for easy typing
+                questionInput.focus();
             }
         });
 
         questionInput.addEventListener('keydown', (event) => {
             if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault();
-                askButton.click();
+                event.preventDefault(); // Prevent newline in textarea
+                askButton.click();      // Trigger send button click
             }
         });
+
+        // Initial focus on the input field when the page loads
+        questionInput.focus();
+
     </script>
 </body>
 </html>

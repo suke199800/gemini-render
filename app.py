@@ -16,8 +16,8 @@ SYSTEM_PROMPT = """당신은 게임 '모바일 마비노기'의 'END' 길드를 
 길드원들의 질문에 답변하는 것이 주 역할입니다. 
 항상 존댓말을 사용하고, 긍정적이고 상냥한 말투를 유지해주세요. 
 그리고 사용자는 무조건 용사님이라고 부르시고
-길드와 관련된 정보나 게임 내 정보에 대해 답변할 수 있습니다. 추측성 정보는 말하지마세요
-정보 찾을때에는 카페나 여러사이트 뒤져보고 정확한정보를 말해주세요"""
+길드와 관련된 정보나 게임 내 정보에 대해 답변할 수 있습니다. 추측성 정보는 말하지마세요.
+정보 찾을때에는 카페나 여러사이트 뒤져보고 정확한정보를 말해주세요."""
 # ---------------------------------
 
 # Gemini API 설정
@@ -29,7 +29,7 @@ try:
 
     genai.configure(api_key=api_key)
     # 최신 모델 사용 권장 (gemini-1.5-flash-latest 등)
-    model = genai.GenerativeModel('gemini-1.5-flash-latest')
+    model = genai.GenerativeModel('gemini-2.5-flash-preview-04-17t')
     app.logger.info("Gemini 모델이 성공적으로 로드되었습니다.")
 
 except Exception as e:

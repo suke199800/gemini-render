@@ -16,7 +16,7 @@ try:
     genai.configure(api_key=api_key)
     # 최신 모델 사용 권장 (예: gemini-1.5-flash-latest)
     # 사용자가 이전에 사용한 모델명으로 유지합니다. 필요시 변경하세요.
-    model = genai.GenerativeModel('gemini-1.5-flash-latest')
+    model = genai.GenerativeModel('gemini-2.5-flash-preview-04-17')
     app.logger.info("Gemini 모델이 성공적으로 로드되었습니다.")
 
 except Exception as e:

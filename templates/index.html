@@ -3,35 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini 육도선인</title>
+    <title>Gemini 육도선인 - Professional</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        /* 기본 폰트 및 스크롤바 스타일 (선택 사항) */
+        /* 기본 폰트 및 스크롤바 스타일 */
         body {
-            font-family: 'Inter', sans-serif;
+            /* 한국어 환경 고려 Noto Sans KR 추가, Inter 우선 */
+            font-family: 'Inter', 'Noto Sans KR', sans-serif;
             /* 스크롤바 디자인 (웹킷 기반 브라우저용) */
             ::-webkit-scrollbar {
                 width: 8px;
             }
             ::-webkit-scrollbar-track {
-                background: #f1f5f9; /* bg-slate-100 */
+                background: #f8fafc; /* bg-slate-50 */
                 border-radius: 10px;
             }
             ::-webkit-scrollbar-thumb {
-                background: #94a3b8; /* bg-slate-400 */
+                background: #cbd5e1; /* bg-slate-300 */
                 border-radius: 10px;
             }
             ::-webkit-scrollbar-thumb:hover {
-                background: #64748b; /* bg-slate-500 */
+                background: #94a3b8; /* bg-slate-400 */
             }
         }
         /* 로딩 스피너 스타일 */
         .loader {
             border: 4px solid #e2e8f0; /* bg-slate-200 */
-            border-top: 4px solid #4f46e5; /* indigo-600 */
+            /* 전문적인 느낌의 파란색 계열 */
+            border-top: 4px solid #3b82f6; /* blue-500 */
             border-radius: 50%;
             width: 24px;
             height: 24px;
@@ -46,58 +48,72 @@
         /* 답변 영역 스타일 */
         #responseArea {
             min-height: 150px; /* 최소 높이 */
-            max-height: 50vh; /* 최대 높이를 화면 높이의 절반으로 제한 */
+            max-height: 60vh; /* 최대 높이 약간 증가 */
             overflow-y: auto; /* 내용 넘칠 경우 스크롤 */
             white-space: pre-wrap; /* 공백/줄바꿈 유지 */
             word-wrap: break-word; /* 긴 단어 줄바꿈 */
-            line-height: 1.6; /* 줄 간격 개선 */
+            line-height: 1.7; /* 줄 간격 증가로 가독성 향상 */
+            font-size: 0.9rem; /* 본문 폰트 크기 약간 조정 */
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-indigo-50 via-white to-cyan-50 flex items-center justify-center min-h-screen p-4">
-    <div class="bg-white p-6 md:p-10 rounded-xl shadow-2xl w-full max-w-3xl border border-gray-200">
-        <div class="text-center mb-8">
-             <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-indigo-600 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-              </svg>
-            <h1 class="text-2xl md:text-3xl font-bold text-gray-800">육도선인의 지혜</h1>
-            <p class="text-sm text-gray-500 mt-1">궁금한 것을 무엇이든 물어보세요!</p>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+                                    {/* 배경색 변경: 그라데이션 -> 차분한 회색 */}
+    <div class="bg-white p-8 md:p-12 rounded-lg shadow-lg w-full max-w-3xl border border-gray-200">
+        {/* 패딩 증가, 그림자 변경: shadow-2xl -> shadow-lg */}
+        <div class="text-center mb-10">
+            {/* 아이콘 변경: 좀 더 심플한 chat-alt-2, 색상 변경 */}
+             <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-blue-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                 <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+             </svg>
+            {/* 제목 스타일 변경: 폰트 크기, 굵기, 색상 */}
+            <h1 class="text-3xl md:text-4xl font-semibold text-gray-900">Gemini Assistant</h1>
+            {/* 부제목 스타일 변경: 폰트 크기, 색상, 마진 */}
+            <p class="text-base text-gray-600 mt-2">무엇이든 물어보세요.</p>
         </div>
 
-        <div class="mb-5">
-            <label for="questionInput" class="block text-sm font-medium text-gray-700 mb-2">질문 입력:</label>
-            <textarea id="questionInput" rows="4" class="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out resize-none" placeholder="여기에 질문을 입력하세요..."></textarea>
+        <div class="mb-6">
+            {/* 라벨 스타일 변경: 폰트 굵기, 색상 */}
+            <label for="questionInput" class="block text-sm font-medium text-gray-700 mb-2">질문:</label>
+            {/* Textarea 스타일 변경: 테두리, 포커스 효과 */}
+            <textarea id="questionInput" rows="4" class="w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out resize-none placeholder-gray-400 text-sm" placeholder="여기에 질문을 입력하세요..."></textarea>
         </div>
 
-        <div class="text-center mb-5">
-            <button id="askButton" class="inline-flex items-center justify-center bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold py-2.5 px-6 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out transform hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none">
+        <div class="text-center mb-6">
+            {/* 버튼 스타일 변경: 그라데이션 제거, 단색 배경, 호버 효과, 그림자, 스케일 애니메이션 제거 */}
+            <button id="askButton" class="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-6 rounded-md shadow focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed">
+                 {/* 아이콘 변경: 종이 비행기 아이콘 */}
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
                 <span>질문 보내기</span>
             </button>
         </div>
 
+        {/* 로딩 인디케이터 */}
         <div id="loadingIndicator" class="loader"></div>
 
-        <div id="errorArea" class="text-center text-red-600 text-sm font-medium h-5 mb-4">
+        {/* 에러 메시지 영역 */}
+        <div id="errorArea" class="text-center text-red-500 text-sm font-medium h-5 mb-4">
             </div>
 
-        <div class="bg-slate-50 p-4 md:p-5 rounded-lg border border-slate-200 shadow-inner">
-            <h2 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        {/* 답변 영역 스타일 변경: 배경색, 테두리, 내부 패딩 */}
+        <div class="bg-slate-50 p-5 rounded-md border border-slate-200 shadow-sm">
+            {/* 답변 제목 스타일 변경: 폰트 크기, 굵기, 색상, 아이콘 */}
+            <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a2 2 0 01-2-2V10a2 2 0 012-2h8z" />
-                  </svg>
-                Gemini의 답변:
+                 </svg>
+                답변:
             </h2>
-            <div id="responseArea" class="text-gray-700">
+            {/* 답변 내용 텍스트 스타일 변경: 색상 */}
+            <div id="responseArea" class="text-gray-800">
                 </div>
         </div>
     </div>
 
     <script>
         // JavaScript 코드는 이전과 동일하게 유지됩니다.
-        // (ID가 동일하므로 별도 수정 없이 작동합니다)
         const questionInput = document.getElementById('questionInput');
         const askButton = document.getElementById('askButton');
         const responseArea = document.getElementById('responseArea');
@@ -117,9 +133,10 @@
             }
 
             askButton.disabled = true;
-            // 버튼 텍스트 변경은 버튼 내용이 복잡해져서 생략하거나 다른 방식 고려
-            // askButton.querySelector('span').textContent = '질문 중...';
             loadingIndicator.style.display = 'block';
+            // Optionally change button text while loading
+            // askButton.querySelector('span').textContent = '처리 중...';
+
 
             try {
                 const response = await fetch('/ask', {
@@ -133,7 +150,10 @@
                     data = await response.json();
                 } catch (jsonError) {
                     console.error('JSON 파싱 오류:', jsonError);
-                    throw new Error('서버로부터 유효한 응답을 받지 못했습니다.');
+                    // Display raw text if JSON parsing fails but response seems okay
+                    const rawText = await response.text();
+                    console.error('Raw server response:', rawText);
+                    throw new Error(`서버 응답 형식 오류입니다. ${response.status}`);
                 }
 
                 if (!response.ok) {
@@ -150,18 +170,20 @@
             } catch (error) {
                 console.error('오류 발생:', error);
                 errorArea.textContent = `오류: ${error.message || '알 수 없는 오류가 발생했습니다.'}`;
-                responseArea.textContent = '';
+                responseArea.textContent = ''; // Clear response area on error
             } finally {
                 askButton.disabled = false;
+                 loadingIndicator.style.display = 'none';
+                // Restore button text
                 // askButton.querySelector('span').textContent = '질문 보내기';
-                loadingIndicator.style.display = 'none';
             }
         });
 
         questionInput.addEventListener('keydown', (event) => {
+            // Allow Shift+Enter for new lines in textarea
             if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault();
-                askButton.click();
+                event.preventDefault(); // Prevent default Enter behavior (new line)
+                askButton.click(); // Trigger button click
             }
         });
     </script>

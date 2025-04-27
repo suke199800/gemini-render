@@ -29,7 +29,7 @@ try:
 
     genai.configure(api_key=api_key)
     # 최신 모델 사용 권장 (gemini-1.5-flash-latest 등)
-    model = genai.GenerativeModel('gemini-2.5-flash-preview-04-17t')
+    model = genai.GenerativeModel('gemini-2.5-flash-preview-04-17')
     app.logger.info("Gemini 모델이 성공적으로 로드되었습니다.")
 
 except Exception as e:
